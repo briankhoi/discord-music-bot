@@ -1,6 +1,106 @@
 const { useQueue } = require('discord-player');
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
+
+// function handleReactions(
+//     interaction,
+//     message,
+//     collectorFilter,
+//     currentPage,
+//     tracks,
+//     currentTrack,
+//     queue,
+// ) {
+//     try {
+//         message
+//             .awaitReactions({
+//                 filter: collectorFilter,
+//                 max: 1,
+//                 time: 15000,
+//             })
+//             .then(async (collected) => {
+//                 // console.log('test');
+//                 // console.log(collected.first());
+//                 const reaction = collected.first();
+//                 // need to remove user's emoji after
+//                 if (reaction.emoji.name === '⏪') {
+//                     currentPage = 0;
+//                 } else if (reaction.emoji.name === '◀️' && currentPage > 0) {
+//                     currentPage--;
+//                 } else if (
+//                     reaction.emoji.name === '▶️' &&
+//                     currentPage < tracks.length - 1
+//                 ) {
+//                     currentPage++;
+//                 } else if (reaction.emoji.name === '⏩') {
+//                     currentPage = tracks.length - 1;
+//                 } else {
+//                     return;
+//                 }
+//                 // update the queue embed display
+//                 const editedQueueDisplay = createQueueEmbed(
+//                     interaction,
+//                     queue,
+//                     tracks,
+//                     currentPage,
+//                 );
+//                 interaction.editReply({ embeds: [editedQueueDisplay] });
+//                 handleReactions(
+//                     interaction,
+//                     message,
+//                     collectorFilter,
+//                     currentPage,
+//                     tracks,
+//                     currentTrack,
+//                     queue,
+//                 );
+//             },
+//             )
+//             .catch((collected) => {
+//                 message.reply(`reaction collector error: ${collected}`);
+//                 console.log('stack trace:');
+//                 console.log(collected, collected.stack);
+//             });
+//     } catch (e) {
+//         return interaction.editReply(`Something went wrong: ${e}`);
+//     }
+// }
+
+function createcurrentPageString(tracks, currentPage) {
+    let page = '';
+    const queueExists = tracks[currentPage]?.length ?? false;
+    if (queueExists) {
+        for (let i = 1; i <= tracks[currentPage].length; i++) {
+            page += `**${i + currentPage * 10}**. ${tracks[currentPage][i - 1]}\n`;
+        }
+    }
+    return page;
+}
+
+function createQueueEmbed(interaction, queue, tracks, currentPage) {
+    const currentTrack = queue.currentTrack;
+    const queueString = `🔊  Current Track: **${currentTrack}**\n\n🔊  Queue:\n${createcurrentPageString(
+        tracks,
+        currentPage,
+    )}`;
+    const embed = new EmbedBuilder()
+        .setAuthor({
+            name: `${interaction.guild.name}'s Queue`,
+            // iconURL: interaction.guild.icon,
+        })
+        .setDescription(queueString)
+        .setThumbnail(currentTrack.thumbnail)
+        .setFooter({
+            text: `Page ${currentPage + 1} of ${
+                tracks.length
+            }  |  Tracks Queued: ${queue.getSize()}  |  Total Duration: ${
+                queue.durationFormatted
+            }`,
+        })
+        .setColor('e8d5ac');
+    return interaction.editReply({ embeds: [embed] });
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('queue')
@@ -20,34 +120,21 @@ module.exports = {
         }
         try {
             await interaction.deferReply();
-            const currentTrack = queue.currentTrack;
+            // const currentTrack = queue.currentTrack;
             const songsPerPage = 10;
             const tracks = [];
-            const queuePage = 0;
+            let currentPage = 0;
             // divide the list of tracks into a 2d array with 10 songs per element
             for (let i = 0; i < queue.getSize(); i += songsPerPage) {
                 const songs = queue.tracks.toArray().slice(i, i + songsPerPage);
                 tracks.push(songs);
             }
-            const queueDisplay = createQueueEmbed(
+            const message = await createQueueEmbed(
                 interaction,
                 queue,
                 tracks,
-                queuePage,
+                currentPage,
             );
-            queueDisplay.createReactionCollector;
-
-            const message = await interaction.editReply({
-                embeds: [queueDisplay],
-            });
-
-            // this ensures that the reactions are always placed in order
-            message
-                .react('⏪')
-                .then(() => message.react('◀️'))
-                .then(() => message.react('▶️'))
-                .then(() => message.react('⏩'))
-                .catch((e) => console.log(e));
 
             // reactions only work for the person who used the cmd
             const collectorFilter = (reaction, user) => {
@@ -56,116 +143,49 @@ module.exports = {
                     user.id === interaction.user.id
                 );
             };
-            handleReactions(
-                interaction,
-                message,
-                collectorFilter,
-                queuePage,
-                tracks,
-                currentTrack,
-                queue,
-            );
+
+            const collector = message.createReactionCollector({ filter: collectorFilter, time: 30000 });
+            collector.on('collect', (reaction) => {
+                if (reaction.emoji.name === '⏪') {
+                    currentPage = 0;
+                } else if (reaction.emoji.name === '◀️' && currentPage > 0) {
+                    currentPage--;
+                } else if (
+                    reaction.emoji.name === '▶️' &&
+                    currentPage < tracks.length - 1
+                ) {
+                    currentPage++;
+                } else if (reaction.emoji.name === '⏩') {
+                    currentPage = tracks.length - 1;
+                }
+                createQueueEmbed(interaction, queue, tracks, currentPage);
+                // console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
+            });
+            // const message = await interaction.editReply({
+            //     embeds: [queueDisplay],
+            // });
+
+            // handleReactions(
+            //     interaction,
+            //     message,
+            //     collectorFilter,
+            //     currentPage,
+            //     tracks,
+            //     currentTrack,
+            //     queue,
+            // );
+
+            // this ensures that the reactions are always placed in order
+            return message
+                .react('⏪')
+                .then(() => message.react('◀️'))
+                .then(() => message.react('▶️'))
+                .then(() => message.react('⏩'))
+                .catch((e) => console.log(e));
+            // const collector = message.createReactionCollector({ filter: collectorFilter, time: 15000 });
         } catch (e) {
             console.log(e);
             return await interaction.editReply(`Something went wrong: ${e}`);
         }
     },
 };
-
-function handleReactions(
-    interaction,
-    message,
-    collectorFilter,
-    queuePage,
-    tracks,
-    currentTrack,
-    queue,
-) {
-    try {
-        message
-            .awaitReactions({
-                filter: collectorFilter,
-                max: 1,
-                time: 15000,
-            })
-            .then(async (collected) => {
-                console.log('test');
-                console.log(collected.first());
-                const reaction = collected.first();
-                // need to remove user's emoji after
-                if (reaction.emoji.name === '⏪') {
-                    queuePage = 0;
-                } else if (reaction.emoji.name === '◀️' && queuePage > 0) {
-                    queuePage--;
-                } else if (
-                    reaction.emoji.name === '▶️' &&
-                    queuePage < tracks.length - 1
-                ) {
-                    queuePage++;
-                } else if (reaction.emoji.name === '⏩') {
-                    queuePage = tracks.length - 1;
-                } else {
-                    return;
-                }
-                // update the queue embed display
-                const editedQueueDisplay = createQueueEmbed(
-                    interaction,
-                    queue,
-                    tracks,
-                    queuePage,
-                );
-                interaction.editReply({ embeds: [editedQueueDisplay] });
-                handleReactions(
-                    interaction,
-                    message,
-                    collectorFilter,
-                    queuePage,
-                    tracks,
-                    currentTrack,
-                    queue,
-                );
-            },
-            )
-            .catch((collected) => {
-                message.reply(`reaction collector error: ${collected}`);
-                console.log('stack trace:');
-                console.log(collected, collected.stack);
-            });
-    } catch (e) {
-        return interaction.editReply(`Something went wrong: ${e}`);
-    }
-}
-
-function createQueuePageString(tracks, queuePage) {
-    let page = '';
-    const queueExists = tracks[queuePage]?.length ?? false;
-    if (queueExists) {
-        for (let i = 1; i <= tracks[queuePage].length; i++) {
-            page += `**${i + queuePage * 10}**. ${tracks[queuePage][i - 1]}\n`;
-        }
-    }
-    return page;
-}
-
-function createQueueEmbed(interaction, queue, tracks, queuePage) {
-    const currentTrack = queue.currentTrack;
-    const queueString = `🔊  Current Track: **${currentTrack}**\n\n🔊  Queue:\n${createQueuePageString(
-        tracks,
-        queuePage,
-    )}`;
-    return new EmbedBuilder()
-        .setAuthor({
-            name: `${interaction.guild.name}'s Queue`,
-            // iconURL: interaction.guild.icon,
-        })
-        .setDescription(queueString)
-        .setThumbnail(currentTrack.thumbnail)
-        .setFooter({
-            text: `Page ${queuePage + 1} of ${
-                tracks.length
-            }  |  Tracks Queued: ${queue.getSize()}  |  Total Duration: ${
-                queue.durationFormatted
-            }`,
-        })
-        .setColor('e8d5ac');
-}
