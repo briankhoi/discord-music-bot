@@ -18,7 +18,7 @@
     "discord-player": "^6.6.2",
     "discord.js": "^14.13.0",
     "dotenv": "^16.3.1",
-    "ytdl-core": "^4.11.5"
+    "ytdl-core": "^4.10.0"
   },
   "devDependencies": {
     "eslint": "^8.47.0"

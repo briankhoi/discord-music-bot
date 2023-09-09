@@ -1,71 +1,6 @@
 const { useQueue } = require('discord-player');
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
-
-// function handleReactions(
-//     interaction,
-//     message,
-//     collectorFilter,
-//     currentPage,
-//     tracks,
-//     currentTrack,
-//     queue,
-// ) {
-//     try {
-//         message
-//             .awaitReactions({
-//                 filter: collectorFilter,
-//                 max: 1,
-//                 time: 15000,
-//             })
-//             .then(async (collected) => {
-//                 // console.log('test');
-//                 // console.log(collected.first());
-//                 const reaction = collected.first();
-//                 // need to remove user's emoji after
-//                 if (reaction.emoji.name === '⏪') {
-//                     currentPage = 0;
-//                 } else if (reaction.emoji.name === '◀️' && currentPage > 0) {
-//                     currentPage--;
-//                 } else if (
-//                     reaction.emoji.name === '▶️' &&
-//                     currentPage < tracks.length - 1
-//                 ) {
-//                     currentPage++;
-//                 } else if (reaction.emoji.name === '⏩') {
-//                     currentPage = tracks.length - 1;
-//                 } else {
-//                     return;
-//                 }
-//                 // update the queue embed display
-//                 const editedQueueDisplay = createQueueEmbed(
-//                     interaction,
-//                     queue,
-//                     tracks,
-//                     currentPage,
-//                 );
-//                 interaction.editReply({ embeds: [editedQueueDisplay] });
-//                 handleReactions(
-//                     interaction,
-//                     message,
-//                     collectorFilter,
-//                     currentPage,
-//                     tracks,
-//                     currentTrack,
-//                     queue,
-//                 );
-//             },
-//             )
-//             .catch((collected) => {
-//                 message.reply(`reaction collector error: ${collected}`);
-//                 console.log('stack trace:');
-//                 console.log(collected, collected.stack);
-//             });
-//     } catch (e) {
-//         return interaction.editReply(`Something went wrong: ${e}`);
-//     }
-// }
-
 function createcurrentPageString(tracks, currentPage) {
     let page = '';
     const queueExists = tracks[currentPage]?.length ?? false;
@@ -145,7 +80,7 @@ module.exports = {
             };
 
             const collector = message.createReactionCollector({ filter: collectorFilter, time: 30000 });
-            collector.on('collect', (reaction) => {
+            collector.on('collect', (reaction, user) => {
                 if (reaction.emoji.name === '⏪') {
                     currentPage = 0;
                 } else if (reaction.emoji.name === '◀️' && currentPage > 0) {
@@ -158,22 +93,10 @@ module.exports = {
                 } else if (reaction.emoji.name === '⏩') {
                     currentPage = tracks.length - 1;
                 }
+                // add a section here to remove the reaction of the user
                 createQueueEmbed(interaction, queue, tracks, currentPage);
                 // console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
             });
-            // const message = await interaction.editReply({
-            //     embeds: [queueDisplay],
-            // });
-
-            // handleReactions(
-            //     interaction,
-            //     message,
-            //     collectorFilter,
-            //     currentPage,
-            //     tracks,
-            //     currentTrack,
-            //     queue,
-            // );
 
             // this ensures that the reactions are always placed in order
             return message
@@ -182,7 +105,6 @@ module.exports = {
                 .then(() => message.react('▶️'))
                 .then(() => message.react('⏩'))
                 .catch((e) => console.log(e));
-            // const collector = message.createReactionCollector({ filter: collectorFilter, time: 15000 });
         } catch (e) {
             console.log(e);
             return await interaction.editReply(`Something went wrong: ${e}`);
