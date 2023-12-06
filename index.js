@@ -91,7 +91,7 @@ setupPlayer().then(() => {
             console.error(error);
             // Ephemeral meaning that the message is displayed only to the user who executed the command
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({
+                await interaction.reply({
                     content: "There was an error while executing this command!",
                     ephemeral: true,
                 });
