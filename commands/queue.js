@@ -80,7 +80,7 @@ module.exports = {
             };
 
             const collector = message.createReactionCollector({ filter: collectorFilter, time: 30000 });
-            collector.on('collect', (reaction) => {
+            collector.on('collect', (reaction, user) => {
                 if (reaction.emoji.name === '⏪') {
                     currentPage = 0;
                 } else if (reaction.emoji.name === '◀️' && currentPage > 0) {

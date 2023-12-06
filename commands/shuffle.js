@@ -20,7 +20,7 @@ module.exports = {
         }
         try {
             queue.tracks.shuffle();
-            return interaction.followUp({
+            return interaction.reply({
                 embeds: [
                     new EmbedBuilder()
                         .setDescription('Shuffling the queue!')
