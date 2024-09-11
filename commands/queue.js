@@ -1,8 +1,8 @@
-const { useQueue } = require('discord-player');
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { useQueue } = require("discord-player");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 
 function createcurrentPageString(tracks, currentPage) {
-    let page = '';
+    let page = "";
     const queueExists = tracks[currentPage]?.length ?? false;
     if (queueExists) {
         for (let i = 1; i <= tracks[currentPage].length; i++) {
@@ -16,7 +16,7 @@ function createQueueEmbed(interaction, queue, tracks, currentPage) {
     const currentTrack = queue.currentTrack;
     const queueString = `🔊  Current Track: **${currentTrack}**\n\n🔊  Queue:\n${createcurrentPageString(
         tracks,
-        currentPage,
+        currentPage
     )}`;
     const embed = new EmbedBuilder()
         .setAuthor({
@@ -32,14 +32,14 @@ function createQueueEmbed(interaction, queue, tracks, currentPage) {
                 queue.durationFormatted
             }`,
         })
-        .setColor('e8d5ac');
+        .setColor("e8d5ac");
     return interaction.editReply({ embeds: [embed] });
 }
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('queue')
-        .setDescription('Lists all the songs in the queue'),
+        .setName("queue")
+        .setDescription("Lists all the songs in the queue"),
     async execute(interaction) {
         const queue = useQueue(interaction.guild.id);
         if (!queue) {
@@ -47,9 +47,9 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            'The queue is empty! Please add some songs to use this command',
+                            "The queue is empty! Please add some songs to use this command"
                         )
-                        .setColor('e8d5ac'),
+                        .setColor("e8d5ac"),
                 ],
             });
         }
@@ -68,30 +68,30 @@ module.exports = {
                 interaction,
                 queue,
                 tracks,
-                currentPage,
+                currentPage
             );
 
             // reactions only work for the person who used the cmd
             const collectorFilter = (reaction, user) => {
                 return (
-                    ['⏪', '◀️', '▶️', '⏩'].includes(reaction.emoji.name) &&
+                    ["⏪", "◀️", "▶️", "⏩"].includes(reaction.emoji.name) &&
                     user.id === interaction.user.id
                 );
             };
 
             const collector = message.createReactionCollector({ filter: collectorFilter, time: 30000 });
             // collector.on('collect', (reaction, user) => {
-            collector.on('collect', (reaction) => {
-                if (reaction.emoji.name === '⏪') {
+            collector.on("collect", (reaction) => {
+                if (reaction.emoji.name === "⏪") {
                     currentPage = 0;
-                } else if (reaction.emoji.name === '◀️' && currentPage > 0) {
+                } else if (reaction.emoji.name === "◀️" && currentPage > 0) {
                     currentPage--;
                 } else if (
-                    reaction.emoji.name === '▶️' &&
+                    reaction.emoji.name === "▶️" &&
                     currentPage < tracks.length - 1
                 ) {
                     currentPage++;
-                } else if (reaction.emoji.name === '⏩') {
+                } else if (reaction.emoji.name === "⏩") {
                     currentPage = tracks.length - 1;
                 }
                 // add a section here to remove the reaction of the user
@@ -101,10 +101,10 @@ module.exports = {
 
             // this ensures that the reactions are always placed in order
             return message
-                .react('⏪')
-                .then(() => message.react('◀️'))
-                .then(() => message.react('▶️'))
-                .then(() => message.react('⏩'))
+                .react("⏪")
+                .then(() => message.react("◀️"))
+                .then(() => message.react("▶️"))
+                .then(() => message.react("⏩"))
                 .catch((e) => console.log(e));
         } catch (e) {
             console.log(e);
