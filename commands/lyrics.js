@@ -12,7 +12,7 @@ module.exports = {
             return await interaction.reply({
                 embeds: [
                     new EmbedBuilder().setDescription(
-                        "The queue is empty! Please add some songs to use this command",
+                        "The queue is empty! Please add some songs to use this command"
                     ),
                 ],
             });
@@ -46,7 +46,7 @@ module.exports = {
                 .setDescription(
                     trimmedLyrics.length === 1997
                         ? `${trimmedLyrics}...`
-                        : trimmedLyrics,
+                        : trimmedLyrics
                 )
                 .setColor("e8d5ac");
 

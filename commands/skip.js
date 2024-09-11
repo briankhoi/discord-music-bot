@@ -12,7 +12,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            "The queue is empty! Please add some songs to use this command",
+                            "The queue is empty! Please add some songs to use this command"
                         )
                         .setColor("e8d5ac"),
                 ],
@@ -30,7 +30,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            `Skipped **${skippedTrack}**\n${endMessage}`,
+                            `Skipped **${skippedTrack}**\n${endMessage}`
                         )
                         .setColor("e8d5ac"),
                 ],

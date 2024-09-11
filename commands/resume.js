@@ -12,7 +12,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            "The queue is empty! Please add some songs to use this command",
+                            "The queue is empty! Please add some songs to use this command"
                         )
                         .setColor("e8d5ac"),
                 ],

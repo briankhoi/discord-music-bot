@@ -8,9 +8,9 @@ module.exports = {
             option
                 .setName("position")
                 .setDescription(
-                    "The position in queue of the song you want to skip to (queue starts at position 1)",
+                    "The position in queue of the song you want to skip to (queue starts at position 1)"
                 )
-                .setRequired(true),
+                .setRequired(true)
         ),
     async execute(interaction) {
         const queue = useQueue(interaction.guild.id);
@@ -21,7 +21,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            "The queue is empty! Please add some songs to use this command",
+                            "The queue is empty! Please add some songs to use this command"
                         )
                         .setColor("e8d5ac"),
                 ],
@@ -44,7 +44,7 @@ module.exports = {
                             .setDescription(
                                 `Jumping to position **${
                                     desiredPosition + 1
-                                }** in queue, **${desiredSong}**!`,
+                                }** in queue, **${desiredSong}**!`
                             )
                             .setColor("e8d5ac"),
                     ],
@@ -54,7 +54,7 @@ module.exports = {
                     embeds: [
                         new EmbedBuilder()
                             .setDescription(
-                                "That position is not in the queue!",
+                                "That position is not in the queue!"
                             )
                             .setColor("e8d5ac"),
                     ],

@@ -64,7 +64,7 @@ setupPlayer().then(() => {
             client.commands.set(command.data.name, command);
         } else {
             console.log(
-                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`,
+                `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
             );
         }
     }
@@ -75,12 +75,12 @@ setupPlayer().then(() => {
         if (!interaction.isChatInputCommand()) return;
 
         const command = interaction.client.commands.get(
-            interaction.commandName,
+            interaction.commandName
         );
 
         if (!command) {
             console.error(
-                `No command matching ${interaction.commandName} was found.`,
+                `No command matching ${interaction.commandName} was found.`
             );
             return;
         }

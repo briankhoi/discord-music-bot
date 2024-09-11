@@ -16,7 +16,7 @@ function createQueueEmbed(interaction, queue, tracks, currentPage) {
     const currentTrack = queue.currentTrack;
     const queueString = `🔊  Current Track: **${currentTrack}**\n\n🔊  Queue:\n${createcurrentPageString(
         tracks,
-        currentPage,
+        currentPage
     )}`;
     const embed = new EmbedBuilder()
         .setAuthor({
@@ -47,7 +47,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            "The queue is empty! Please add some songs to use this command",
+                            "The queue is empty! Please add some songs to use this command"
                         )
                         .setColor("e8d5ac"),
                 ],
@@ -68,7 +68,7 @@ module.exports = {
                 interaction,
                 queue,
                 tracks,
-                currentPage,
+                currentPage
             );
 
             // reactions only work for the person who used the cmd

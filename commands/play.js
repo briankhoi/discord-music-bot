@@ -9,7 +9,7 @@ module.exports = {
             option
                 .setName("query")
                 .setDescription("The name or link to the song or playlist")
-                .setRequired(true),
+                .setRequired(true)
         ),
     async execute(interaction) {
         const player = useMainPlayer();
@@ -18,7 +18,7 @@ module.exports = {
         {return interaction.reply({
             embeds: [
                 new EmbedBuilder().setDescription(
-                    "You are not connected to a voice channel!",
+                    "You are not connected to a voice channel!"
                 ),
             ],
         });}
@@ -56,7 +56,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            `Added **${track.title}** to the queue!`,
+                            `Added **${track.title}** to the queue!`
                         )
                         .setColor("e8d5ac"),
                 ],
