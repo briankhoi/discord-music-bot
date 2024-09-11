@@ -5,13 +5,13 @@ const {
     Events,
     GatewayIntentBits,
     EmbedBuilder,
-} = require('discord.js');
-const { Player } = require('discord-player');
-const { SpotifyExtractor } = require('@discord-player/extractor');
-const { YoutubeiExtractor } = require('discord-player-youtubei');
-const fs = require('node:fs');
-const path = require('node:path');
-const dotenv = require('dotenv');
+} = require("discord.js");
+const { Player } = require("discord-player");
+const { SpotifyExtractor } = require("@discord-player/extractor");
+const { YoutubeiExtractor } = require("discord-player-youtubei");
+const fs = require("node:fs");
+const path = require("node:path");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
@@ -21,7 +21,7 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMessageReactions,
-        'GuildVoiceStates',
+        "GuildVoiceStates",
     ],
 });
 
@@ -29,19 +29,19 @@ const player = new Player(client);
 
 async function setupPlayer() {
     await player.extractors.register(YoutubeiExtractor, {
-        authentication: process.env.YT_TOKEN
+        authentication: process.env.YT_TOKEN,
     });
     await player.extractors.register(SpotifyExtractor, {});
     // await player.extractors.loadDefault();
 }
 
 setupPlayer().then(() => {
-    player.events.on('playerStart', (queue, track) => {
+    player.events.on("playerStart", (queue, track) => {
         queue.metadata.channel.send({
             embeds: [
                 new EmbedBuilder()
                     .setDescription(`Started playing **${track.title}**!`)
-                    .setColor('e8d5ac'),
+                    .setColor("e8d5ac"),
             ],
         });
     });
@@ -51,16 +51,16 @@ setupPlayer().then(() => {
 	*/
     client.commands = new Collection();
 
-    const commandsPath = path.join(__dirname, 'commands');
+    const commandsPath = path.join(__dirname, "commands");
     const commandFiles = fs
         .readdirSync(commandsPath)
-        .filter((file) => file.endsWith('.js'));
+        .filter((file) => file.endsWith(".js"));
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         const command = require(filePath);
         // Set a new item in the Collection with the key as the command name and the value as the exported module
-        if ('data' in command && 'execute' in command) {
+        if ("data" in command && "execute" in command) {
             client.commands.set(command.data.name, command);
         } else {
             console.log(
@@ -92,12 +92,12 @@ setupPlayer().then(() => {
             // Ephemeral meaning that the message is displayed only to the user who executed the command
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp({
-                    content: 'There was an error while executing this command!',
+                    content: "There was an error while executing this command!",
                     ephemeral: true,
                 });
             } else {
                 await interaction.reply({
-                    content: 'There was an error while executing this command!',
+                    content: "There was an error while executing this command!",
                     ephemeral: true,
                 });
             }

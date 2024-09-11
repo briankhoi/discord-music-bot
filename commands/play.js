@@ -1,14 +1,14 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { useMainPlayer, useQueue } = require('discord-player');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { useMainPlayer, useQueue } = require("discord-player");
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('play')
-        .setDescription('Play a song in your voice channel')
+        .setName("play")
+        .setDescription("Play a song in your voice channel")
         .addStringOption((option) =>
             option
-                .setName('query')
-                .setDescription('The name or link to the song or playlist')
+                .setName("query")
+                .setDescription("The name or link to the song or playlist")
                 .setRequired(true),
         ),
     async execute(interaction) {
@@ -18,12 +18,12 @@ module.exports = {
         {return interaction.reply({
             embeds: [
                 new EmbedBuilder().setDescription(
-                    'You are not connected to a voice channel!',
+                    "You are not connected to a voice channel!",
                 ),
             ],
         });}
 
-        const query = interaction.options.getString('query', true);
+        const query = interaction.options.getString("query", true);
         await interaction.deferReply();
 
         try {
@@ -58,7 +58,7 @@ module.exports = {
                         .setDescription(
                             `Added **${track.title}** to the queue!`,
                         )
-                        .setColor('e8d5ac'),
+                        .setColor("e8d5ac"),
                 ],
             });
         } catch (e) {

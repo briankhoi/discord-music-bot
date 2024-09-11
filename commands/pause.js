@@ -1,10 +1,10 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { useQueue } = require('discord-player');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { useQueue } = require("discord-player");
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('pause')
-        .setDescription('Pauses the queue'),
+        .setName("pause")
+        .setDescription("Pauses the queue"),
     async execute(interaction) {
         const queue = useQueue(interaction.guild.id);
         if (!queue) {
@@ -12,9 +12,9 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            'The queue is empty! Please add some songs to use this command',
+                            "The queue is empty! Please add some songs to use this command",
                         )
-                        .setColor('e8d5ac'),
+                        .setColor("e8d5ac"),
                 ],
             });
         }
@@ -23,8 +23,8 @@ module.exports = {
                 return interaction.reply({
                     embeds: [
                         new EmbedBuilder()
-                            .setDescription('The queue is already paused!')
-                            .setColor('e8d5ac'),
+                            .setDescription("The queue is already paused!")
+                            .setColor("e8d5ac"),
                     ],
                 });
             } else {
@@ -32,8 +32,8 @@ module.exports = {
                 return interaction.reply({
                     embeds: [
                         new EmbedBuilder()
-                            .setDescription('The queue has been paused!')
-                            .setColor('e8d5ac'),
+                            .setDescription("The queue has been paused!")
+                            .setColor("e8d5ac"),
                     ],
                 });
             }

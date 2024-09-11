@@ -1,29 +1,29 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { useQueue } = require('discord-player');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { useQueue } = require("discord-player");
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('skipto')
-        .setDescription('Skips to the position in queue')
+        .setName("skipto")
+        .setDescription("Skips to the position in queue")
         .addStringOption((option) =>
             option
-                .setName('position')
+                .setName("position")
                 .setDescription(
-                    'The position in queue of the song you want to skip to (queue starts at position 1)',
+                    "The position in queue of the song you want to skip to (queue starts at position 1)",
                 )
                 .setRequired(true),
         ),
     async execute(interaction) {
         const queue = useQueue(interaction.guild.id);
         const desiredPosition =
-            Number(interaction.options.getString('position', true)) - 1;
+            Number(interaction.options.getString("position", true)) - 1;
         if (!queue) {
             return await interaction.reply({
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(
-                            'The queue is empty! Please add some songs to use this command',
+                            "The queue is empty! Please add some songs to use this command",
                         )
-                        .setColor('e8d5ac'),
+                        .setColor("e8d5ac"),
                 ],
             });
         }
@@ -46,7 +46,7 @@ module.exports = {
                                     desiredPosition + 1
                                 }** in queue, **${desiredSong}**!`,
                             )
-                            .setColor('e8d5ac'),
+                            .setColor("e8d5ac"),
                     ],
                 });
             } else {
@@ -54,9 +54,9 @@ module.exports = {
                     embeds: [
                         new EmbedBuilder()
                             .setDescription(
-                                'That position is not in the queue!',
+                                "That position is not in the queue!",
                             )
-                            .setColor('e8d5ac'),
+                            .setColor("e8d5ac"),
                     ],
                 });
             }

@@ -1,25 +1,25 @@
 // Command deployment script from DiscordJS documentation
 
-const { REST, Routes } = require('discord.js');
-const dotenv = require('dotenv');
-const fs = require('node:fs');
-const path = require('node:path');
+const { REST, Routes } = require("discord.js");
+const dotenv = require("dotenv");
+const fs = require("node:fs");
+const path = require("node:path");
 
 dotenv.config();
 
 const commands = [];
 
-const commandsPath = path.join(__dirname, 'commands');
+const commandsPath = path.join(__dirname, "commands");
 const commandFiles = fs
     .readdirSync(commandsPath)
-    .filter((file) => file.endsWith('.js'));
+    .filter((file) => file.endsWith(".js"));
 
 // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     console.log(filePath);
     const command = require(filePath);
-    if ('data' in command && 'execute' in command) {
+    if ("data" in command && "execute" in command) {
         commands.push(command.data.toJSON());
     } else {
         console.log(
