@@ -27,10 +27,12 @@ module.exports = {
                 .search(queue.currentTrack.title)
                 .catch(() => null);
             if (!lyrics)
-            {return interaction.followUp({
-                content: "No lyrics found!",
-                ephemeral: false,
-            });}
+            {
+                return interaction.followUp({
+                    content: "No lyrics found!",
+                    ephemeral: false,
+                });
+            }
 
             const trimmedLyrics = lyrics.lyrics.substring(0, 1997);
 

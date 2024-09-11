@@ -11,6 +11,7 @@ A discord bot used to play songs from YouTube and Spotify in a discord server.
     - DISCORD_TOKEN=(the token of the discord bot)
     - CLIENT_ID=(application id of the bot)
     - FFMPEG_PATH=path-to-ffmpeg-exe (when extracting the ffmpeg zip, it should be in the bins folder)
+    - YT_TOKEN=(string output from `npx --no discord-player-youtubei`)
 5. Invite the bot to your server
 6. Run 'node deploy-commands.js', then 'node index.js' and enjoy
 
