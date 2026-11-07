@@ -148,6 +148,7 @@ function check(name, ok, detail = "") {
 
 const queue = () => useQueue(GUILD_ID);
 async function audioFlowing(ms = 4000) {
+    await waitFor(() => queue()?.dispatcher?.audioPlayer?.state.status === "playing", 15000);
     const ap = queue()?.dispatcher?.audioPlayer;
     if (!ap || ap.state.status !== "playing") return { ok: false, why: `player status ${ap?.state.status}` };
     const before = ap.state.playbackDuration;
@@ -205,6 +206,17 @@ async function main() {
     check("/np shows the card with a progress bar and buttons", /\[title\] Let Me Go/.test(out) && out.includes(`Requested by: <@${requester.id}>`) && /▬/.test(out) && buttonIds(lastReply).length === 5, out);
 
     // --- /lyrics
+    // --- /seek
+    out = await run("seek", { time: "1:30" });
+    const position = queue().node.getTimestamp()?.current.value;
+    check("/seek 1:30 jumps to 1:30", /Jumped to 1:30/.test(out) && position >= 90000 && position < 100000, `${out} (position ${position}ms)`);
+    const seekFlow = await audioFlowing();
+    check("/seek: audio keeps streaming", seekFlow.ok, seekFlow.why);
+    out = await run("seek", { time: "abc" });
+    check("/seek with bad input explains", /isn't a time/.test(out), out);
+    out = await run("seek", { time: "10:00" });
+    check("/seek past the end explains", /only .* long/.test(out), out);
+
     out = await run("lyrics");
     check("/lyrics finds Daniel Caesar - Let Me Go", /\[author\] Daniel Caesar/i.test(out) && /\[title\] Let Me Go/i.test(out), out.slice(0, 120));
 
