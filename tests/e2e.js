@@ -388,6 +388,19 @@ async function main() {
     await waitFor(() => !queue(), 5000);
     check("⏹️ button stops the music and removes the card's buttons", !queue() && /stopped the music/.test(out) && card.components.length === 0, out);
 
+    // --- Leaving when everyone leaves the voice channel
+    await run("play", { query: LINKS.letMeGo });
+    await expectStart("Let Me Go", "/play after ⏹️");
+    check("leaves 60s after everyone leaves the channel", queue().options.leaveOnEmpty && queue().options.leaveOnEmptyCooldown === 60000, `cooldown ${queue().options.leaveOnEmptyCooldown}ms`);
+    queue().options.leaveOnEmptyCooldown = 1500; // don't make the test wait a minute
+    const leaver = { id: "123", user: { bot: false } };
+    player.handleVoiceState(
+        { guild, member: leaver, channelId: voiceChannel.id, channel: voiceChannel },
+        { guild, member: leaver, channelId: null, channel: null }
+    );
+    await waitFor(() => !queue(), 5000);
+    check("when everyone has left, the bot leaves and says why", !queue() && sent.some((m) => /Everyone left the voice channel/.test(m.text)), sent.at(-1)?.text);
+
     check("no track failed to stream during the run", playerErrors.length === 0, playerErrors.join("; "));
 }
 

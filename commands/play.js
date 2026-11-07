@@ -71,6 +71,10 @@ module.exports = {
                     disableBiquad: true,
                     disableFilterer: true,
                     disableResampler: true,
+                    // When everyone leaves, pause, and leave if nobody's back
+                    // within a minute (instead of leaving immediately)
+                    leaveOnEmpty: true,
+                    leaveOnEmptyCooldown: 60_000,
                 },
             });
 

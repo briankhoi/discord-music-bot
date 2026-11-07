@@ -56,6 +56,17 @@ setupPlayer().then(() => {
         await postNowPlaying(queue, track).catch(console.error);
     });
     player.events.on("queueDelete", (queue) => retireCard(queue.guild.id));
+    player.events.on("emptyChannel", (queue) => {
+        queue.metadata.channel
+            .send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription("Everyone left the voice channel, so I left too! 👋")
+                        .setColor("e8d5ac"),
+                ],
+            })
+            .catch(() => {});
+    });
     // Keep the card's "Up next" current as songs are added and removed
     for (const event of ["audioTrackAdd", "audioTracksAdd", "audioTrackRemove", "audioTracksRemove"]) {
         player.events.on(event, (queue) => refreshCard(queue));
