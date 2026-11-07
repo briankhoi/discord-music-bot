@@ -346,6 +346,10 @@ async function main() {
     // --- ⏹️ button
     out = await run("play", { query: LINKS.letMeGo });
     await expectStart("Let Me Go", "/play after /leave");
+
+    // --- /loop modes
+    out = await run("loop", { mode: "song" });
+    check("/loop mode:song loops the current song", queue().repeatMode === QueueRepeatMode.TRACK && /this song/.test(out), out);
     await waitFor(() => lastCard()?.text.includes("Let Me Go"), 5000);
     card = lastCard();
     out = await press("stop");

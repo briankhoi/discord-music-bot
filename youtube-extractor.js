@@ -36,14 +36,7 @@ class PatchedYoutubeExtractor extends YoutubeExtractor {
             .map((node) => readVideoNode(node))
             .filter(Boolean)
             .map((video) => {
-                const track = new Track(this.context.player, {
-                    ...video,
-                    description: `${video.title} by ${video.author}`,
-                    requestedBy: context.requestedBy,
-                    source: "youtube",
-                    queryType: QueryType.YOUTUBE_VIDEO,
-                });
-                track.extractor = this;
+                const track = this.buildTrack(video, context.requestedBy);
                 track.playlist = playlist;
                 return track;
             });
@@ -53,6 +46,18 @@ class PatchedYoutubeExtractor extends YoutubeExtractor {
         const start = tracks.findIndex((track) => track.url.endsWith(`v=${ids.videoId}`));
         playlist.tracks = start > 0 ? [...tracks.slice(start), ...tracks.slice(0, start)] : tracks;
         return this.createResponse(playlist, playlist.tracks);
+    }
+
+    buildTrack(video, requestedBy) {
+        const track = new Track(this.context.player, {
+            ...video,
+            description: `${video.title} by ${video.author}`,
+            requestedBy,
+            source: "youtube",
+            queryType: QueryType.YOUTUBE_VIDEO,
+        });
+        track.extractor = this;
+        return track;
     }
 
     async fetchPlaylist({ playlistId, videoId }) {
