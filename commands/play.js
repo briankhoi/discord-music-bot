@@ -44,6 +44,14 @@ module.exports = {
         const query = interaction.options.getString("query", true);
         await interaction.deferReply();
 
+        // Right after /leave, Discord hasn't confirmed the bot left voice yet.
+        // When it does, discord-player deletes the queue, so a queue created
+        // before then would be deleted too. Wait (up to 3s) for that first.
+        const me = interaction.guild.members.me;
+        for (let i = 0; i < 20 && !useQueue(interaction.guild.id) && me.voice.channelId; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+
         try {
             let queue = useQueue(interaction.guild.id);
 
