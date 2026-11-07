@@ -30,6 +30,7 @@ voip.AudioPlayer.prototype._stepDispatch = function () {
 
 require(root + "index.js");
 const { useMainPlayer, useQueue, QueueRepeatMode } = require("discord-player");
+const { handleButton } = require(root + "now-playing.js");
 const player = useMainPlayer();
 const client = player.client;
 
@@ -49,7 +50,7 @@ const LINKS = {
 };
 
 const results = [];
-const sent = []; // messages the bot posted to the text channel (e.g. "Started playing")
+const sent = []; // messages the bot posted to the text channel (e.g. "Now playing" cards)
 const started = []; // playerStart events
 const playerErrors = [];
 player.events.on("playerStart", (q, t) => started.push(t.title));
@@ -70,7 +71,8 @@ const embedText = (x) => {
         return x.embeds
             .map((e) => {
                 const d = e.data ?? e;
-                return [d.author?.name && `[author] ${d.author.name}`, d.title && `[title] ${d.title}`, d.description, d.footer?.text && `[footer] ${d.footer.text}`]
+                const fields = d.fields?.map((f) => `${f.name}: ${f.value}`).join(" | ");
+                return [d.author?.name && `[author] ${d.author.name}`, d.title && `[title] ${d.title}`, d.description, fields, d.footer?.text && `[footer] ${d.footer.text}`]
                     .filter(Boolean)
                     .join(" | ");
             })
@@ -79,28 +81,63 @@ const embedText = (x) => {
     return x?.content ?? JSON.stringify(x);
 };
 
-let guild, voiceChannel, requester;
+// A stand-in for a Discord message the bot sent, which the bot can edit
+let nextMessageId = 1;
+function makeMessage(payload) {
+    const message = {
+        id: String(nextMessageId++),
+        payload: typeof payload === "string" ? { content: payload } : payload,
+        get text() { return embedText(message.payload); },
+        get embeds() { return (message.payload.embeds ?? []).map((e) => e.data ?? e); },
+        get components() { return message.payload.components ?? []; },
+        async edit(x) { message.payload = { ...message.payload, ...x }; return message; },
+        react: async () => {},
+        createReactionCollector: () => ({ on() {} }),
+    };
+    return message;
+}
+const buttonIds = (message) => message.components.flatMap((row) => (row.components ?? []).map((b) => b.data?.custom_id));
+const lastCard = () => sent.filter((m) => /Now playing|Paused/.test(m.text)).at(-1);
+
+let guild, voiceChannel, requester, lastReply;
 async function run(name, args = {}, channelOverride) {
     currentStep = `/${name} ${JSON.stringify(args)}`;
     const replies = [];
-    const message = { react: async () => {}, createReactionCollector: () => ({ on() {} }) };
+    const respond = (x) => { replies.push(embedText(x)); lastReply = makeMessage(x); return lastReply; };
     const interaction = {
         commandName: name,
         client,
         guild,
         user: requester,
         member: { voice: { channel: channelOverride ?? voiceChannel } },
-        channel: { send: async (x) => (sent.push(embedText(x)), message) },
+        channel: { send: async (x) => { const m = makeMessage(x); sent.push(m); return m; } },
         options: { getString: (n) => args[n] ?? null },
         replied: false,
         deferred: false,
         isChatInputCommand: () => true,
-        async reply(x) { this.replied = true; replies.push(embedText(x)); return message; },
+        async reply(x) { this.replied = true; return respond(x); },
         async deferReply() { this.deferred = true; },
-        async followUp(x) { replies.push(embedText(x)); return message; },
-        async editReply(x) { replies.push(embedText(x)); return message; },
+        async followUp(x) { return respond(x); },
+        async editReply(x) { return respond(x); },
     };
     await client.commands.get(name).execute(interaction);
+    return replies.join("\n");
+}
+
+// Presses a button on a message (the latest "Now playing" card by default)
+async function press(id, { message = lastCard(), inVoice = true } = {}) {
+    currentStep = `button ${id}`;
+    const replies = [];
+    await handleButton({
+        customId: `np:${id}`,
+        guild,
+        user: requester,
+        member: { voice: { channelId: inVoice ? voiceChannel.id : "some-other-channel" } },
+        message,
+        isButton: () => true,
+        async update(x) { await message.edit(x); },
+        async reply(x) { replies.push(embedText(x)); },
+    });
     return replies.join("\n");
 }
 
@@ -114,12 +151,18 @@ async function audioFlowing(ms = 4000) {
     const ap = queue()?.dispatcher?.audioPlayer;
     if (!ap || ap.state.status !== "playing") return { ok: false, why: `player status ${ap?.state.status}` };
     const before = ap.state.playbackDuration;
+    const titleBefore = queue()?.currentTrack?.title;
     await sleep(ms);
-    const after = ap.state.playbackDuration ?? 0;
-    return { ok: after - before >= ms * 0.9, why: `${after - before}ms of audio sent in ${ms}ms, missedFrames=${ap.state.missedFrames}` };
+    const after = queue()?.dispatcher?.audioPlayer?.state.playbackDuration ?? 0;
+    const titleAfter = queue()?.currentTrack?.title;
+    return { ok: after - before >= ms * 0.9, why: `${after - before}ms of audio sent in ${ms}ms, missedFrames=${ap.state.missedFrames}${titleBefore !== titleAfter ? `, track changed: ${titleBefore} -> ${titleAfter}` : ""} (started: ${started.slice(-3).join(" / ")})` };
 }
+// Waits for a new song to start (not just a matching title, since the next
+// song can have the same title as the current one)
+let seenStarts = 0;
 async function expectStart(title, label) {
-    const ok = await waitFor(() => queue()?.currentTrack?.title === title && queue()?.node.isPlaying(), 45000);
+    const ok = await waitFor(() => started.length > seenStarts && started.at(-1) === title && queue()?.node.isPlaying(), 45000);
+    seenStarts = started.length;
     check(`${label}: "${title}" starts playing`, ok, `current=${queue()?.currentTrack?.title}`);
     if (ok) {
         const flow = await audioFlowing();
@@ -146,7 +189,12 @@ async function main() {
     queue().options.pauseOnEmpty = false; // the test channel is empty; keep playing anyway
     if (queue().node.isPaused()) queue().node.resume();
     await expectStart("Let Me Go", "/play");
-    check("'Started playing' message posted", sent.some((s) => /Started playing \*\*Let Me Go\*\*/.test(s)), sent.at(-1));
+    await waitFor(() => lastCard()?.text.includes("Let Me Go"), 5000);
+    let card = lastCard();
+    check("'Now playing' card posted with title, artist, duration and requester",
+        /\[title\] Let Me Go/.test(card?.text) && /Artist: Daniel Caesar/.test(card?.text) && /Duration: 0?3:3[78]/.test(card?.text) && card?.text.includes(`Requested by: <@${requester.id}>`),
+        card?.text);
+    check("card has the 5 control buttons", JSON.stringify(buttonIds(card)) === JSON.stringify(["np:previous", "np:pause", "np:skip", "np:loop", "np:stop"]), buttonIds(card).join(","));
 
     // --- /np
     out = await run("np");
@@ -154,7 +202,7 @@ async function main() {
     out = await run("queue");
     check("/queue with only the current song says nothing else is queued", /Nothing else queued/.test(out) && /Page 1 of 1\b/.test(out), out.replace(/\n/g, " / ").slice(0, 160));
     out = await run("np");
-    check("/np shows the current song, requester and progress bar", /\[title\] Let Me Go/.test(out) && out.includes(`Requested by ${requester.username}`) && /▬|─|━|=/.test(out), out);
+    check("/np shows the card with a progress bar and buttons", /\[title\] Let Me Go/.test(out) && out.includes(`Requested by: <@${requester.id}>`) && /▬/.test(out) && buttonIds(lastReply).length === 5, out);
 
     // --- /lyrics
     out = await run("lyrics");
@@ -165,6 +213,8 @@ async function main() {
     out = await run("play", { query: LINKS.playlistFromLetMeGo });
     const added = queue().getSize() - before;
     check("/play playlist link queues all 17 songs", added === 17, `added ${added}; reply: ${out}`);
+    await waitFor(() => /Up next: Let Me Go/.test(lastCard()?.text), 3000);
+    check("the card's 'Up next' updates when songs are queued", /Up next: Let Me Go/.test(lastCard()?.text), lastCard()?.text.match(/\[footer\].*/)?.[0]);
     const plTracks = queue().tracks.toArray().slice(before);
     check("playlist starts at the linked song (Let Me Go)", plTracks[0]?.title === "Let Me Go", plTracks.slice(0, 3).map((t) => t.title).join(" / "));
     check("every playlist track has artist, duration and requester",
@@ -193,6 +243,32 @@ async function main() {
     check("/resume resumes", !queue().node.isPaused() && /has been resumed/.test(out), out);
     out = await run("resume");
     check("/resume again says already playing", /already playing/.test(out), out);
+
+    // --- Now playing card buttons
+    card = lastCard();
+    await press("pause");
+    check("⏸️ button pauses and the card shows Paused with a ▶️ button", queue().node.isPaused() && /Paused/.test(card.text) && card.components[0].components[1].data.emoji.name === "▶️", card.text.slice(0, 40));
+    await press("pause");
+    check("▶️ button resumes", !queue().node.isPaused() && /Now playing/.test(card.text), card.text.slice(0, 40));
+    const modes = [];
+    for (let i = 0; i < 3; i++) { await press("loop"); modes.push(queue().repeatMode); }
+    check("🔁 button cycles loop: queue -> song -> off", JSON.stringify(modes) === JSON.stringify([QueueRepeatMode.QUEUE, QueueRepeatMode.TRACK, QueueRepeatMode.OFF]), JSON.stringify(modes));
+    out = await press("pause", { inVoice: false });
+    check("buttons only work for people in the bot's voice channel", /Join my voice channel/.test(out) && !queue().node.isPaused(), out);
+    out = await run("pause");
+    await waitFor(() => /Paused/.test(card.text), 3000);
+    check("/pause updates the card's button too", /Paused/.test(card.text), card.text.slice(0, 40));
+    await run("resume");
+    const playingTitle = queue().currentTrack.title;
+    const upNext = titles()[0];
+    out = await press("skip");
+    check("⏭️ button skips and says who did it", out.includes(`${requester}`) && out.includes(playingTitle), out);
+    await expectStart(upNext, "⏭️ button");
+    await waitFor(() => lastCard() !== card, 5000);
+    check("the old card's buttons are removed when the next song starts", card.components.length === 0 && lastCard() !== card, `old card components: ${card.components.length}`);
+    out = await press("previous");
+    check("⏮️ button goes back to the previous song", /went back/.test(out), out);
+    await expectStart(playingTitle, "⏮️ button");
 
     // --- /front
     let t = titles();
@@ -240,6 +316,8 @@ async function main() {
     const art = await waitFor(() => /spotifycdn/.test(spTrack.thumbnail), 8000);
     check("Spotify track gets its real cover art", art, spTrack.thumbnail);
     out = await run("np");
+    await waitFor(() => lastCard()?.text.includes("Never Gonna Give You Up"), 5000);
+    check("Spotify song's card shows its cover art", /spotifycdn/.test(lastCard()?.embeds[0]?.thumbnail?.url), lastCard()?.embeds[0]?.thumbnail?.url);
     check("/np on a Spotify track links the song", /\[title\] Never Gonna Give You Up/.test(out) && spTrack.url === LINKS.spotifyTrack, spTrack.url);
 
     // --- Spotify album track: these come with broken /tracks/<uid> links
@@ -264,6 +342,15 @@ async function main() {
     check("/leave stops and deletes the queue", !queue() && /Leaving/.test(out), out);
     out = await run("np");
     check("/np with nothing playing says the queue is empty", /queue is empty/.test(out), out);
+
+    // --- ⏹️ button
+    out = await run("play", { query: LINKS.letMeGo });
+    await expectStart("Let Me Go", "/play after /leave");
+    await waitFor(() => lastCard()?.text.includes("Let Me Go"), 5000);
+    card = lastCard();
+    out = await press("stop");
+    await waitFor(() => !queue(), 5000);
+    check("⏹️ button stops the music and removes the card's buttons", !queue() && /stopped the music/.test(out) && card.components.length === 0, out);
 
     check("no track failed to stream during the run", playerErrors.length === 0, playerErrors.join("; "));
 }

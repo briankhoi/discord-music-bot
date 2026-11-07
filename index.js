@@ -9,6 +9,7 @@ const {
 const { Player } = require("discord-player");
 const { SpotifyExtractor } = require("@discord-player/extractor");
 const { PatchedYoutubeExtractor } = require("./youtube-extractor");
+const { postNowPlaying, refreshCard, retireCard, handleButton } = require("./now-playing");
 const fs = require("node:fs");
 const path = require("node:path");
 const dotenv = require("dotenv");
@@ -50,16 +51,15 @@ async function fixSpotifyTrack(track) {
 }
 
 setupPlayer().then(() => {
-    player.events.on("playerStart", (queue, track) => {
-        fixSpotifyTrack(track).catch(() => {});
-        queue.metadata.channel.send({
-            embeds: [
-                new EmbedBuilder()
-                    .setDescription(`Started playing **${track.title}**!`)
-                    .setColor("e8d5ac"),
-            ],
-        });
+    player.events.on("playerStart", async (queue, track) => {
+        await fixSpotifyTrack(track).catch(() => {});
+        await postNowPlaying(queue, track).catch(console.error);
     });
+    player.events.on("queueDelete", (queue) => retireCard(queue.guild.id));
+    // Keep the card's "Up next" current as songs are added and removed
+    for (const event of ["audioTrackAdd", "audioTracksAdd", "audioTrackRemove", "audioTracksRemove"]) {
+        player.events.on(event, (queue) => refreshCard(queue));
+    }
     // A track that can't be streamed is skipped; say so instead of failing silently
     player.events.on("playerError", (queue, error, track) => {
         console.error(`[playerError] ${track?.title}:`, error.message, error.cause ?? "");
@@ -103,6 +103,9 @@ setupPlayer().then(() => {
     // Error handling incase something goes wrong while executing the command
     // Sourced from DiscordJS documentation
     client.on(Events.InteractionCreate, async (interaction) => {
+        if (interaction.isButton() && interaction.customId.startsWith("np:")) {
+            return handleButton(interaction).catch(console.error);
+        }
         if (!interaction.isChatInputCommand()) return;
 
         const command = interaction.client.commands.get(
