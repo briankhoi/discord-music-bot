@@ -1,0 +1,25 @@
+# systemd service for running the bot on a server (e.g. an Oracle Cloud VM).
+# Starts the bot on boot and restarts it if it crashes. Setup steps are in
+# the README under "Running on a server".
+#
+# Change User and WorkingDirectory below to match your server
+# ("ubuntu" is the default user on Oracle's Ubuntu images, "opc" on Oracle Linux),
+# and the node path if `which node` prints something other than /usr/bin/node.
+
+[Unit]
+Description=Discord music bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/discord-music-bot
+# Register slash commands first; "-" means a failure here doesn't stop the bot
+ExecStartPre=-/usr/bin/node deploy-commands.js
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

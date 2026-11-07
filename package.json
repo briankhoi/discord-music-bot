@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node deploy-commands.js && node index.js",
+    "dev": "./start.sh",
     "test": "node tests/e2e.js"
   },
   "keywords": [],
