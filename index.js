@@ -60,6 +60,22 @@ setupPlayer().then(() => {
             ],
         });
     });
+    // A track that can't be streamed is skipped; say so instead of failing silently
+    player.events.on("playerError", (queue, error, track) => {
+        console.error(`[playerError] ${track?.title}:`, error.message, error.cause ?? "");
+        queue.metadata.channel
+            .send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription(`Couldn't play **${track?.title}**, skipping!`)
+                        .setColor("e8d5ac"),
+                ],
+            })
+            .catch(() => {});
+    });
+    player.events.on("error", (queue, error) => {
+        console.error(`[queue error] ${queue.guild.name}:`, error.message);
+    });
     /*
 		Dynamic command retrieval -> Looks in the commands subdirectory and filters out all the non-js files. Afterwards, set the js files as commands
 		Sourced from DiscordJS documentation

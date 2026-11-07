@@ -1,4 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const {
+    SlashCommandBuilder,
+    EmbedBuilder,
+    PermissionFlagsBits,
+} = require("discord.js");
 const { useMainPlayer, useQueue } = require("discord-player");
 
 module.exports = {
@@ -22,6 +26,20 @@ module.exports = {
                 ),
             ],
         });}
+
+        // Without these, joining just times out after ~20s with no useful error
+        const botPermissions = channel.permissionsFor(interaction.guild.members.me);
+        if (!channel.joinable || !botPermissions?.has(PermissionFlagsBits.Speak)) {
+            return interaction.reply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription(
+                            `I don't have permission to join and speak in **${channel.name}**! Please give me View Channel, Connect and Speak there.`
+                        )
+                        .setColor("e8d5ac"),
+                ],
+            });
+        }
 
         const query = interaction.options.getString("query", true);
         await interaction.deferReply();
