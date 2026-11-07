@@ -8,7 +8,7 @@ const {
 } = require("discord.js");
 const { Player } = require("discord-player");
 const { SpotifyExtractor } = require("@discord-player/extractor");
-const { YoutubeiExtractor } = require("discord-player-youtubei");
+const { PatchedYoutubeExtractor } = require("./youtube-extractor");
 const fs = require("node:fs");
 const path = require("node:path");
 const dotenv = require("dotenv");
@@ -28,8 +28,8 @@ const client = new Client({
 const player = new Player(client);
 
 async function setupPlayer() {
-    await player.extractors.register(YoutubeiExtractor, {
-        authentication: process.env.YT_TOKEN,
+    await player.extractors.register(PatchedYoutubeExtractor, {
+        cookie: process.env.YT_COOKIE,
     });
     await player.extractors.register(SpotifyExtractor, {});
     // await player.extractors.loadDefault();

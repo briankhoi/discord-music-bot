@@ -1,6 +1,19 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { useQueue } = require("discord-player");
-const { lyricsExtractor } = require("@discord-player/extractor");
+const { useMainPlayer, useQueue } = require("discord-player");
+
+// YouTube titles/channels look like "Artist - Song (Official Video)" by
+// "ArtistVEVO"; reduce them to plain artist and song names for the search.
+function cleanTrackInfo(track) {
+    const artist = track.author
+        .replace(/\s*-\s*Topic$|VEVO$|\s+Official$/i, "")
+        .trim();
+    const escapedArtist = artist.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const title = track.title
+        .replace(/\([^)]*\)|\[[^\]]*\]/g, "")
+        .replace(new RegExp(`^${escapedArtist}\\s*[-–]\\s*`, "i"), "")
+        .trim();
+    return { artist, title };
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -20,12 +33,16 @@ module.exports = {
         try {
             await interaction.deferReply();
 
-            const lyricsFinder =
-                lyricsExtractor(/* 'optional genius API key' */);
-
-            const lyrics = await lyricsFinder
-                .search(queue.currentTrack.title)
-                .catch(() => null);
+            const { artist, title } = cleanTrackInfo(queue.currentTrack);
+            const player = useMainPlayer();
+            const search = (params) =>
+                player.lyrics
+                    .search(params)
+                    .then((results) => results.find((l) => l.plainLyrics))
+                    .catch(() => null);
+            const lyrics =
+                (await search({ trackName: title, artistName: artist })) ??
+                (await search({ q: `${artist} ${title}` }));
             if (!lyrics)
             {
                 return interaction.followUp({
@@ -34,17 +51,12 @@ module.exports = {
                 });
             }
 
-            const trimmedLyrics = lyrics.lyrics.substring(0, 1997);
+            const trimmedLyrics = lyrics.plainLyrics.substring(0, 1997);
 
             const embed = new EmbedBuilder()
-                .setTitle(lyrics.title)
-                .setURL(lyrics.url)
-                .setThumbnail(lyrics.thumbnail)
-                .setAuthor({
-                    name: lyrics.artist.name,
-                    iconURL: lyrics.artist.image,
-                    url: lyrics.artist.url,
-                })
+                .setTitle(lyrics.trackName)
+                .setThumbnail(queue.currentTrack.thumbnail)
+                .setAuthor({ name: lyrics.artistName })
                 .setDescription(
                     trimmedLyrics.length === 1997
                         ? `${trimmedLyrics}...`
@@ -54,7 +66,7 @@ module.exports = {
 
             return interaction.followUp({ embeds: [embed] });
         } catch (e) {
-            return await interaction.reply(`Something went wrong!\n ${e}`);
+            return await interaction.followUp(`Something went wrong!\n ${e}`);
         }
     },
 };
