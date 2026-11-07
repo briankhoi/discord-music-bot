@@ -355,6 +355,13 @@ async function main() {
     const albumArt = await waitFor(() => /spotifycdn/.test(albumFirst.thumbnail) && /open\.spotify\.com\/track\//.test(albumFirst.url), 8000);
     check("Spotify album track gets cover art and a working link", albumArt, `${albumFirst.url} | ${albumFirst.thumbnail}`);
 
+    // --- /clear
+    const queued = queue().getSize();
+    out = await run("clear");
+    check("/clear empties the queue and keeps the current song playing", queue().getSize() === 0 && queue().node.isPlaying() && out.includes(`Cleared ${queued} songs`), out);
+    out = await run("clear");
+    check("/clear on an empty queue says so", /already empty/.test(out), out);
+
     // --- /reload
     out = await run("reload", { command: "np" });
     check("/reload np reloads the command", /was reloaded/.test(out), out);
