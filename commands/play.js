@@ -33,8 +33,18 @@ module.exports = {
             const beforeSize = queue?.getSize() ?? 0;
 
             const { track } = await player.play(channel, query, {
+                // Tags every queued track, including the one that starts playing
+                // right away (the loop below misses that one for playlists)
+                requestedBy: interaction.user,
                 nodeOptions: {
                     metadata: interaction,
+                    // No command uses volume/EQ/filters, and running that JS
+                    // audio pipeline on every frame makes playback jittery.
+                    disableVolume: true,
+                    disableEqualizer: true,
+                    disableBiquad: true,
+                    disableFilterer: true,
+                    disableResampler: true,
                 },
             });
 

@@ -21,7 +21,7 @@ module.exports = {
             await interaction.deferReply();
             const song = queue.currentTrack;
             const bar = queue.node.createProgressBar({
-                length: 20,
+                length: 12, // longer bars wrap next to the thumbnail
                 queue: false,
             });
             const songInfo = new EmbedBuilder()

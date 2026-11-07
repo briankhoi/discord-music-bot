@@ -9,7 +9,7 @@ function createcurrentPageString(tracks, currentPage) {
             page += `**${i + currentPage * 10}**. ${tracks[currentPage][i - 1]}\n`;
         }
     }
-    return page;
+    return page || "Nothing else queued! Add songs with /play\n";
 }
 
 function createQueueEmbed(interaction, queue, tracks, currentPage) {
@@ -27,7 +27,7 @@ function createQueueEmbed(interaction, queue, tracks, currentPage) {
         .setThumbnail(currentTrack.thumbnail)
         .setFooter({
             text: `Page ${currentPage + 1} of ${
-                tracks.length
+                Math.max(tracks.length, 1)
             }  |  Tracks Queued: ${queue.getSize()}  |  Total Duration: ${
                 queue.durationFormatted
             }`,
@@ -92,7 +92,7 @@ module.exports = {
                 ) {
                     currentPage++;
                 } else if (reaction.emoji.name === "⏩") {
-                    currentPage = tracks.length - 1;
+                    currentPage = Math.max(tracks.length - 1, 0);
                 }
                 // add a section here to remove the reaction of the user
                 createQueueEmbed(interaction, queue, tracks, currentPage);

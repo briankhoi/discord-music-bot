@@ -35,8 +35,23 @@ async function setupPlayer() {
     // await player.extractors.loadDefault();
 }
 
+// Spotify's embed data no longer includes cover art, and tracks from Spotify
+// playlists/albums get broken /tracks/<uid> links. Fix both for the song
+// that's playing (one request per song, instead of one per queued track).
+async function fixSpotifyTrack(track) {
+    const id = track.metadata?.source?.uri?.split(":")[2];
+    if (track.source !== "spotify" || !id) return;
+    track.url = `https://open.spotify.com/track/${id}`;
+    const res = await fetch(
+        `https://open.spotify.com/oembed?url=${encodeURIComponent(track.url)}`,
+        { signal: AbortSignal.timeout(5000) }
+    );
+    if (res.ok) track.thumbnail = (await res.json()).thumbnail_url ?? track.thumbnail;
+}
+
 setupPlayer().then(() => {
     player.events.on("playerStart", (queue, track) => {
+        fixSpotifyTrack(track).catch(() => {});
         queue.metadata.channel.send({
             embeds: [
                 new EmbedBuilder()
