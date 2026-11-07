@@ -52,7 +52,7 @@ async function fixSpotifyTrack(track) {
 
 setupPlayer().then(() => {
     player.events.on("playerStart", async (queue, track) => {
-        await fixSpotifyTrack(track).catch(() => {});
+        await fixSpotifyTrack(track).catch(() => null);
         await postNowPlaying(queue, track).catch(console.error);
     });
     player.events.on("queueDelete", (queue) => retireCard(queue.guild.id));
@@ -65,7 +65,7 @@ setupPlayer().then(() => {
                         .setColor("e8d5ac"),
                 ],
             })
-            .catch(() => {});
+            .catch(() => null);
     });
     // Keep the card's "Up next" current as songs are added and removed
     for (const event of ["audioTrackAdd", "audioTracksAdd", "audioTrackRemove", "audioTracksRemove"]) {
@@ -82,7 +82,7 @@ setupPlayer().then(() => {
                         .setColor("e8d5ac"),
                 ],
             })
-            .catch(() => {});
+            .catch(() => null);
     });
     player.events.on("error", (queue, error) => {
         console.error(`[queue error] ${queue.guild.name}:`, error.message);

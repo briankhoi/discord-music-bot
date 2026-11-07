@@ -68,7 +68,7 @@ const cards = new Map();
 async function retireCard(guildId) {
     const card = cards.get(guildId);
     cards.delete(guildId);
-    await card?.edit({ components: [] }).catch(() => {});
+    await card?.edit({ components: [] }).catch(() => null);
 }
 
 async function postNowPlaying(queue, track) {
@@ -95,7 +95,7 @@ function refreshCard(queue) {
             card.edit({
                 embeds: [nowPlayingEmbed(queue, queue.currentTrack)],
                 components: controls(queue),
-            }).catch(() => {});
+            }).catch(() => null);
         }, 300)
     );
 }

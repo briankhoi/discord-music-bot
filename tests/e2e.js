@@ -18,7 +18,7 @@ let lastDispatch = 0;
 let currentStep = "startup";
 const gaps = [];
 const origDispatch = voip.AudioPlayer.prototype._stepDispatch;
-voip.AudioPlayer.prototype._stepDispatch = function () {
+voip.AudioPlayer.prototype._stepDispatch = function() {
     const now = performance.now();
     if (this.state.status === "playing" && lastDispatch) {
         gaps.push(now - lastDispatch);
@@ -91,8 +91,8 @@ function makeMessage(payload) {
         get embeds() { return (message.payload.embeds ?? []).map((e) => e.data ?? e); },
         get components() { return message.payload.components ?? []; },
         async edit(x) { message.payload = { ...message.payload, ...x }; return message; },
-        react: async () => {},
-        createReactionCollector: () => ({ on() {} }),
+        react: async () => null,
+        createReactionCollector: () => ({ on: () => null }),
     };
     return message;
 }
@@ -103,14 +103,24 @@ let guild, voiceChannel, requester, lastReply;
 async function run(name, args = {}, channelOverride) {
     currentStep = `/${name} ${JSON.stringify(args)}`;
     const replies = [];
-    const respond = (x) => { replies.push(embedText(x)); lastReply = makeMessage(x); return lastReply; };
+    const respond = (x) => {
+        replies.push(embedText(x));
+        lastReply = makeMessage(x);
+        return lastReply;
+    };
     const interaction = {
         commandName: name,
         client,
         guild,
         user: requester,
         member: { voice: { channel: channelOverride ?? voiceChannel } },
-        channel: { send: async (x) => { const m = makeMessage(x); sent.push(m); return m; } },
+        channel: {
+            send: async (x) => {
+                const m = makeMessage(x);
+                sent.push(m);
+                return m;
+            },
+        },
         options: { getString: (n) => args[n] ?? null, getInteger: (n) => args[n] ?? null },
         replied: false,
         deferred: false,
@@ -263,7 +273,10 @@ async function main() {
     await press("pause");
     check("▶️ button resumes", !queue().node.isPaused() && /Now playing/.test(card.text), card.text.slice(0, 40));
     const modes = [];
-    for (let i = 0; i < 3; i++) { await press("loop"); modes.push(queue().repeatMode); }
+    for (let i = 0; i < 3; i++) {
+        await press("loop");
+        modes.push(queue().repeatMode);
+    }
     check("🔁 button cycles loop: queue -> song -> off", JSON.stringify(modes) === JSON.stringify([QueueRepeatMode.QUEUE, QueueRepeatMode.TRACK, QueueRepeatMode.OFF]), JSON.stringify(modes));
     out = await press("pause", { inVoice: false });
     check("buttons only work for people in the bot's voice channel", /Join my voice channel/.test(out) && !queue().node.isPaused(), out);
@@ -413,6 +426,10 @@ main()
         console.log(`\nAudio frame timing over ${gaps.length} frames: p50=${pct(0.5)}ms p99=${pct(0.99)}ms max=${gaps.at(-1)?.toFixed(1)}ms, >30ms late: ${late} (${((late / Math.max(gaps.length, 1)) * 100).toFixed(2)}%)`);
         const failed = results.filter((x) => !x.ok);
         console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
-        try { queue()?.delete(); } catch {}
+        try {
+            queue()?.delete();
+        } catch {
+            // already gone
+        }
         setTimeout(() => process.exit(failed.length ? 1 : 0), 1500);
     });
