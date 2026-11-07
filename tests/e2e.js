@@ -111,7 +111,7 @@ async function run(name, args = {}, channelOverride) {
         user: requester,
         member: { voice: { channel: channelOverride ?? voiceChannel } },
         channel: { send: async (x) => { const m = makeMessage(x); sent.push(m); return m; } },
-        options: { getString: (n) => args[n] ?? null },
+        options: { getString: (n) => args[n] ?? null, getInteger: (n) => args[n] ?? null },
         replied: false,
         deferred: false,
         isChatInputCommand: () => true,
@@ -292,6 +292,13 @@ async function main() {
     out = await run("remove", { index: "1,3-4" });
     const expected = t.filter((_, i) => ![0, 2, 3].includes(i));
     check("/remove 1,3-4 removes exactly those songs", JSON.stringify(titles()) === JSON.stringify(expected), out.split("\n")[0]);
+    // --- /swap
+    t = titles();
+    out = await run("swap", { first: 1, second: 3 });
+    check("/swap 1 3 swaps those songs", titles()[0] === t[2] && titles()[2] === t[0] && titles().length === t.length, out);
+    out = await run("swap", { first: 1, second: 999 });
+    check("/swap with a position past the end explains", /only has/.test(out) && titles()[0] === t[2], out);
+
     out = await run("remove", { index: "abc" });
     check("/remove with bad input explains and removes nothing", /isn't a number/.test(out) && queue().getSize() === expected.length, out);
 
