@@ -16,3 +16,11 @@ A discord bot used to play songs from YouTube and Spotify in a discord server.
 6. Run 'node deploy-commands.js', then 'node index.js' and enjoy
 
 *Linting rules can be modified in .eslintrc.json and commands are stored in the commands folder.
+
+## Testing
+
+`npm test` runs an end-to-end test: it starts the bot, joins a voice channel, runs the slash commands, and checks the replies, the queue, and that audio is actually being sent. Add these to your .env first:
+- E2E_GUILD_ID=(id of the server to test in)
+- E2E_VOICE_CHANNEL=(name of a voice channel there, ideally an empty one)
+
+Stop the bot before running it, since only one connection per server can be in voice.
