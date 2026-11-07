@@ -294,6 +294,12 @@ async function main() {
     check("/skip replies", /Skipped/.test(out), out);
     await expectStart(next, "/skip");
 
+    // --- /previous
+    const previousTitle = queue().history.previousTrack?.title;
+    out = await run("previous");
+    check("/previous replies with the previous song", out.includes(`Going back to **${previousTitle}**`), out);
+    await expectStart(previousTitle, "/previous");
+
     // --- /loop + /skipto (skipped songs must not be lost)
     out = await run("loop");
     check("/loop sets queue repeat", queue().repeatMode === QueueRepeatMode.QUEUE, out);
