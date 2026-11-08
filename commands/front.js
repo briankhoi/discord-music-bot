@@ -33,7 +33,9 @@ module.exports = {
         try {
             if (songPosition < queue.getSize()) {
                 const song = queue.tracks.toArray()[songPosition];
-                queue.insertTrack(song, 0);
+                // moveTrack, not insertTrack: insert adds a copy and leaves the
+                // original in place, so the song would play twice
+                queue.moveTrack(song, 0);
                 return await interaction.reply({
                     embeds: [
                         new EmbedBuilder()

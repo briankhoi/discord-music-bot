@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { useQueue } = require("discord-player");
+const { nowPlayingEmbed, controls } = require("../now-playing");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("np")
@@ -19,23 +20,12 @@ module.exports = {
         }
         try {
             await interaction.deferReply();
-            const song = queue.currentTrack;
-            const bar = queue.node.createProgressBar({
-                length: 20,
-                queue: false,
+            return interaction.followUp({
+                embeds: [
+                    nowPlayingEmbed(queue, queue.currentTrack, { progressBar: true }),
+                ],
+                components: controls(queue),
             });
-            const songInfo = new EmbedBuilder()
-                .setTitle(song.title)
-                .setURL(song.url)
-                .setDescription(bar)
-                .setThumbnail(song.thumbnail)
-                .setFooter({
-                    text: `Requested by ${song.requestedBy.username}`,
-                    iconURL: song.requestedBy.avatarURL(),
-                })
-                .setTimestamp()
-                .setColor("e8d5ac");
-            return interaction.followUp({ embeds: [songInfo] });
         } catch (e) {
             return interaction.followUp(`Something went wrong!\n ${e}`);
         }

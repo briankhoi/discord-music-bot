@@ -8,7 +8,8 @@ const {
 } = require("discord.js");
 const { Player } = require("discord-player");
 const { SpotifyExtractor } = require("@discord-player/extractor");
-const { YoutubeiExtractor } = require("discord-player-youtubei");
+const { PatchedYoutubeExtractor } = require("./youtube-extractor");
+const { postNowPlaying, refreshCard, retireCard, handleButton } = require("./now-playing");
 const fs = require("node:fs");
 const path = require("node:path");
 const dotenv = require("dotenv");
@@ -28,22 +29,63 @@ const client = new Client({
 const player = new Player(client);
 
 async function setupPlayer() {
-    await player.extractors.register(YoutubeiExtractor, {
-        authentication: process.env.YT_TOKEN,
+    await player.extractors.register(PatchedYoutubeExtractor, {
+        cookie: process.env.YT_COOKIE,
     });
     await player.extractors.register(SpotifyExtractor, {});
     // await player.extractors.loadDefault();
 }
 
+// Spotify's embed data no longer includes cover art, and tracks from Spotify
+// playlists/albums get broken /tracks/<uid> links. Fix both for the song
+// that's playing (one request per song, instead of one per queued track).
+async function fixSpotifyTrack(track) {
+    const id = track.metadata?.source?.uri?.split(":")[2];
+    if (track.source !== "spotify" || !id) return;
+    track.url = `https://open.spotify.com/track/${id}`;
+    const res = await fetch(
+        `https://open.spotify.com/oembed?url=${encodeURIComponent(track.url)}`,
+        { signal: AbortSignal.timeout(5000) }
+    );
+    if (res.ok) track.thumbnail = (await res.json()).thumbnail_url ?? track.thumbnail;
+}
+
 setupPlayer().then(() => {
-    player.events.on("playerStart", (queue, track) => {
-        queue.metadata.channel.send({
-            embeds: [
-                new EmbedBuilder()
-                    .setDescription(`Started playing **${track.title}**!`)
-                    .setColor("e8d5ac"),
-            ],
-        });
+    player.events.on("playerStart", async (queue, track) => {
+        await fixSpotifyTrack(track).catch(() => null);
+        await postNowPlaying(queue, track).catch(console.error);
+    });
+    player.events.on("queueDelete", (queue) => retireCard(queue.guild.id));
+    player.events.on("emptyChannel", (queue) => {
+        queue.metadata.channel
+            .send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription("Everyone left the voice channel, so I left too! 👋")
+                        .setColor("e8d5ac"),
+                ],
+            })
+            .catch(() => null);
+    });
+    // Keep the card's "Up next" current as songs are added and removed
+    for (const event of ["audioTrackAdd", "audioTracksAdd", "audioTrackRemove", "audioTracksRemove"]) {
+        player.events.on(event, (queue) => refreshCard(queue));
+    }
+    // A track that can't be streamed is skipped; say so instead of failing silently
+    player.events.on("playerError", (queue, error, track) => {
+        console.error(`[playerError] ${track?.title}:`, error.message, error.cause ?? "");
+        queue.metadata.channel
+            .send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription(`Couldn't play **${track?.title}**, skipping!`)
+                        .setColor("e8d5ac"),
+                ],
+            })
+            .catch(() => null);
+    });
+    player.events.on("error", (queue, error) => {
+        console.error(`[queue error] ${queue.guild.name}:`, error.message);
     });
     /*
 		Dynamic command retrieval -> Looks in the commands subdirectory and filters out all the non-js files. Afterwards, set the js files as commands
@@ -72,6 +114,9 @@ setupPlayer().then(() => {
     // Error handling incase something goes wrong while executing the command
     // Sourced from DiscordJS documentation
     client.on(Events.InteractionCreate, async (interaction) => {
+        if (interaction.isButton() && interaction.customId.startsWith("np:")) {
+            return handleButton(interaction).catch(console.error);
+        }
         if (!interaction.isChatInputCommand()) return;
 
         const command = interaction.client.commands.get(

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { useQueue } = require("discord-player");
+const { QueueRepeatMode, useQueue } = require("discord-player");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("skipto")
@@ -37,7 +37,18 @@ module.exports = {
             ) {
                 const desiredSong =
                     queue.tracks.toArray()[desiredPosition].title;
-                queue.node.skipTo(desiredPosition);
+                if (queue.repeatMode === QueueRepeatMode.QUEUE) {
+                    // skipTo() deletes the tracks it jumps over, even when
+                    // looping. Send them to the back of the queue instead.
+                    const skipped = queue.tracks
+                        .toArray()
+                        .slice(0, desiredPosition);
+                    skipped.forEach((track) => queue.removeTrack(track));
+                    queue.addTrack(skipped);
+                    queue.node.skip();
+                } else {
+                    queue.node.skipTo(desiredPosition);
+                }
                 return await interaction.reply({
                     embeds: [
                         new EmbedBuilder()

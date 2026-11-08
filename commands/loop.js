@@ -1,10 +1,25 @@
-const { useQueue } = require("discord-player");
+const { QueueRepeatMode, useQueue } = require("discord-player");
+const { refreshCard } = require("../now-playing");
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+
+const MODES = {
+    queue: [QueueRepeatMode.QUEUE, "Looping the queue"],
+    song: [QueueRepeatMode.TRACK, "Looping this song"],
+};
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("loop")
-        .setDescription("Loops the queue"),
+        .setDescription("Loops the queue or the current song")
+        .addStringOption((option) =>
+            option
+                .setName("mode")
+                .setDescription("What to loop (default: the queue)")
+                .addChoices(
+                    { name: "queue", value: "queue" },
+                    { name: "song", value: "song" }
+                )
+        ),
     async execute(interaction) {
         const queue = useQueue(interaction.guild.id);
         if (!queue) {
@@ -19,11 +34,13 @@ module.exports = {
             });
         }
         try {
-            queue.setRepeatMode(2);
+            const [mode, message] = MODES[interaction.options.getString("mode") ?? "queue"];
+            queue.setRepeatMode(mode);
+            refreshCard(queue);
             return interaction.reply({
                 embeds: [
                     new EmbedBuilder()
-                        .setDescription("Looping the queue")
+                        .setDescription(message)
                         .setColor("e8d5ac"),
                 ],
             });

@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { useQueue } = require("discord-player");
+const { refreshCard } = require("../now-playing");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -29,6 +30,7 @@ module.exports = {
                 });
             }
             queue.node.setPaused(false);
+            refreshCard(queue);
             return interaction.reply({
                 embeds: [
                     new EmbedBuilder()
